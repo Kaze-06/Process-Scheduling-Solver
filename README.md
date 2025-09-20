@@ -1,4 +1,4 @@
-This system may help you learn and how to solve the Process Scheduling.
+This system may help you learn and to solve the Process Scheduling.
 Including:
  - First Come First Serve
  - Shortest Job First(non-preemtive)
