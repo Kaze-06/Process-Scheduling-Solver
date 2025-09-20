@@ -6,3 +6,5 @@ Including:
  - Round Robin
  - Priority(preemptive)
  - Priority(non-preemtive)
+
+Visit the page here: http://127.0.0.1:5500/ProcSchedSolv.html
