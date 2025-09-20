@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="Schedule Computer" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div class="Maincontainer">
+        <div class="Incontainer">
+            <h2 style="margin-bottom: 14px;">Input</h2>
+            <label for="">Algorithm</label><br>
+            <select name="A" id="Algorithm">
+                <option value="FCFS">First Come First Serve, FCFS</option>
+                <option value="SJF">Shortest Job First, SJF (non-preemptive)</option>
+                <option value="SRTF">Shortest Remaining Time First, SRTF</option>
+                <option value="RR">Round Robin, RR</option>
+                <option value="NPP">Priority (non-preemptive)</option>
+                <option value="PP">Priority (preemptive)</option>
+            </select><br><br>
+
+            <label for="arrivalTimes">Arrival Times</label><br>
+            <input type="text" id="arrivalTimes" placeholder="e.g. 0 2 4 6 8"><br><br>
+
+            <label for="burstTimes">Burst Times</label><br>
+            <input type="text" id="burstTimes" placeholder="e.g. 2 4 6 8 10"><br><br>
+
+            <label for="priorities">Priorities</label><br>
+            <input type="text" id="priorities" placeholder="Lower #= higher priority"><br><br>
+
+            <div style="display: flex; justify-content: center;">
+                <button id="solveBtn">Solve</button>
+            </div>
+
+        </div>
+
+        <div class="Outcontainer" id="Outcontainer">
+  <h2 style="text-align: left;">Output</h2>
+  <p style="color: #666; padding-top: 10px;">Gantt chart and table will be shown here</p>
+</div>
+<a href="https://github.com/Kaze-06/Process-Scheduling-Solver.git">fdsfdsfs</a>
+    </div>
+</body>
+
+<script>
+    document.getElementById("solveBtn").addEventListener("click", function () {
+        const selectedAlgorithm = document.getElementById("Algorithm").value;
+
+        // Get user inputs and convert to arrays of numbers
+        const arrivalInput = document.getElementById("arrivalTimes").value.trim();
+        const burstInput = document.getElementById("burstTimes").value.trim();
+        const priorityInput = document.getElementById("priorities").value.trim();
+
+        const arrivalTimes = arrivalInput.split(" ").map(Number);
+        const burstTimes = burstInput.split(" ").map(Number);
+        const priorities = priorityInput.split(" ").map(Number);
+
+        // ---------- 1. Input Validation ----------
+        if (
+            arrivalTimes.length !== burstTimes.length ||
+            arrivalTimes.some(isNaN) ||
+            burstTimes.some(isNaN)
+        ) {
+            alert("Invalid input. Please enter numbers with equal length for arrival and burst times.");
+            return;
+            //----------- Validation for Priority & Non-priority & Round Robin ----------------
+        } else if (priorities.length !== burstTimes.length || priorities.some(isNaN)) {
+
+        }
+
+        // ---------- 2. Initialize Process Objects ----------
+        processes = arrivalTimes.map((arrival, index) => ({
+            name: String.fromCharCode(65 + index), // A, B, C...
+            arrivalTime: arrival,
+            burstTime: burstTimes[index],
+            priority: priorities[index], // <--- ADD THIS LINE HERE
+            startTime: undefined,
+            completionTime: undefined,
+            waitingTime: undefined,
+            turnaroundTime: undefined
+        }));
+
+
+        // We'll need a timeline if using preemptive algorithm (e.g. SRTF), initialize here
+        let timeline = [];
+
+        // ---------- 3. Scheduling Algorithms ----------
+        if (selectedAlgorithm === "FCFS") {
+            // Non-preemptive FCFS
+            processes.sort((a, b) => a.arrivalTime - b.arrivalTime);
+
+            let currentTime = 0;
+            processes.forEach(proc => {
+                // wait for arrival if CPU is idle
+                if (currentTime < proc.arrivalTime) {
+                    currentTime = proc.arrivalTime;
+                }
+                proc.startTime = currentTime;
+                proc.completionTime = currentTime + proc.burstTime;
+                proc.turnaroundTime = proc.completionTime - proc.arrivalTime;
+                proc.waitingTime = proc.turnaroundTime - proc.burstTime;
+                currentTime = proc.completionTime;
+            });
+
+            // For FCFS we can build a simple timeline where each process runs in one block
+            timeline = processes.map(proc => ({
+                name: proc.name,
+                startTime: proc.startTime,
+                endTime: proc.completionTime
+            }));
+
+        } else if (selectedAlgorithm === "SJF") {
+            // Non-preemptive Shortest Job First
+            let n = processes.length;
+            let isCompleted = new Array(n).fill(false);
+            let completed = 0;
+            let currentTime = 0;
+
+            while (completed < n) {
+                let idx = -1;
+                let minBurst = Infinity;
+
+                for (let i = 0; i < n; i++) {
+                    if (!isCompleted[i] &&
+                        processes[i].arrivalTime <= currentTime &&
+                        processes[i].burstTime < minBurst) {
+                        minBurst = processes[i].burstTime;
+                        idx = i;
+                    }
+                }
+
+                if (idx === -1) {
+                    currentTime++; // CPU idle
+                } else {
+                    let proc = processes[idx];
+                    proc.startTime = currentTime;
+                    proc.completionTime = currentTime + proc.burstTime;
+                    proc.turnaroundTime = proc.completionTime - proc.arrivalTime;
+                    proc.waitingTime = proc.turnaroundTime - proc.burstTime;
+
+                    // Push correct timeline segment
+                    timeline.push({
+                        name: proc.name,
+                        startTime: proc.startTime,
+                        endTime: proc.completionTime
+                    });
+
+                    currentTime = proc.completionTime;
+                    isCompleted[idx] = true;
+                    completed++;
+                }
+            }
+        }
+        else if (selectedAlgorithm === "SRTF") {
+            // Preemptive Shortest Remaining Time First
+            let n = processes.length;
+            let remainingTimes = processes.map(p => p.burstTime);
+            let isCompleted = new Array(n).fill(false);
+            let completed = 0;
+            let currentTime = 0;
+            let lastProcessIndex = -1; // to track switching
+            // timeline already declared above
+
+            while (completed < n) {
+                let idx = -1;
+                let minTime = Infinity;
+
+                for (let i = 0; i < n; i++) {
+                    if (!isCompleted[i] &&
+                        processes[i].arrivalTime <= currentTime &&
+                        remainingTimes[i] > 0 &&
+                        remainingTimes[i] < minTime) {
+                        minTime = remainingTimes[i];
+                        idx = i;
+                    }
+                }
+
+                if (idx === -1) {
+                    // No process ready: CPU idle for this time unit
+                    currentTime++;
+                    continue;
+                }
+
+                // If new process starts (or switching to another), push a new timeline segment
+                if (lastProcessIndex !== idx) {
+                    timeline.push({
+                        name: processes[idx].name,
+                        startTime: currentTime,
+                        endTime: null
+                    });
+                    lastProcessIndex = idx;
+                }
+
+                // Execute one unit of burst
+                remainingTimes[idx]--;
+                currentTime++;
+
+                // Update endTime of the latest timeline segment
+                timeline[timeline.length - 1].endTime = currentTime;
+
+                if (remainingTimes[idx] === 0) {
+                    // This process finishes
+                    processes[idx].completionTime = currentTime;
+                    processes[idx].turnaroundTime = currentTime - processes[idx].arrivalTime;
+                    processes[idx].waitingTime = processes[idx].turnaroundTime - processes[idx].burstTime;
+                    isCompleted[idx] = true;
+                    completed++;
+                }
+            }
+
+            // Also need to set startTime for processes properly (earliest time from timeline)
+            processes.forEach(proc => {
+                // find when this process first appears in timeline
+                const seg = timeline.find(t => t.name === proc.name);
+                if (seg) {
+                    proc.startTime = seg.startTime;
+                }
+                // completionTime, waitingTime, etc, already set
+            });
+
+
+            // EMPTY      -----------------------------------------------------
+
+        } else if (selectedAlgorithm === "NPP") {
+            // Non-Preemptive Priority
+
+
+            let n = processes.length;
+            let isCompleted = new Array(n).fill(false);
+            let completed = 0;
+            let currentTime = 0;
+
+            while (completed < n) {
+                let idx = -1;
+                let highestPriority = Infinity;
+
+                for (let i = 0; i < n; i++) {
+                    if (!isCompleted[i] &&
+                        processes[i].arrivalTime <= currentTime &&
+                        processes[i].priority < highestPriority) {
+                        highestPriority = processes[i].priority;
+                        idx = i;
+                    }
+                }
+
+                if (idx === -1) {
+                    currentTime++; // idle
+                } else {
+                    let proc = processes[idx];
+                    proc.startTime = currentTime;
+                    proc.completionTime = currentTime + proc.burstTime;
+                    proc.turnaroundTime = proc.completionTime - proc.arrivalTime;
+                    proc.waitingTime = proc.turnaroundTime - proc.burstTime;
+
+                    timeline.push({
+                        name: proc.name,
+                        startTime: proc.startTime,
+                        endTime: proc.completionTime
+                    });
+
+                    currentTime = proc.completionTime;
+                    isCompleted[idx] = true;
+                    completed++;
+                }
+            }
+        }
+
+        else if (selectedAlgorithm === "PP") {
+            // Preemptive Priority Scheduling
+
+            let n = processes.length;
+            let remainingTimes = processes.map(p => p.burstTime);
+            let isCompleted = new Array(n).fill(false);
+            let completed = 0;
+            let currentTime = 0;
+            let lastProcessIndex = -1;
+
+            while (completed < n) {
+                let idx = -1;
+                let highestPriority = Infinity;
+
+                for (let i = 0; i < n; i++) {
+                    if (!isCompleted[i] &&
+                        processes[i].arrivalTime <= currentTime &&
+                        processes[i].priority < highestPriority &&
+                        remainingTimes[i] > 0) {
+                        highestPriority = processes[i].priority;
+                        idx = i;
+                    }
+                }
+
+                if (idx === -1) {
+                    currentTime++;
+                    continue;
+                }
+
+                if (lastProcessIndex !== idx) {
+                    timeline.push({
+                        name: processes[idx].name,
+                        startTime: currentTime,
+                        endTime: null
+                    });
+                    lastProcessIndex = idx;
+                }
+
+                remainingTimes[idx]--;
+                currentTime++;
+
+                timeline[timeline.length - 1].endTime = currentTime;
+
+                if (remainingTimes[idx] === 0) {
+                    processes[idx].completionTime = currentTime;
+                    processes[idx].turnaroundTime = currentTime - processes[idx].arrivalTime;
+                    processes[idx].waitingTime = processes[idx].turnaroundTime - processes[idx].burstTime;
+                    isCompleted[idx] = true;
+                    completed++;
+                }
+            }
+
+            processes.forEach(proc => {
+                const seg = timeline.find(t => t.name === proc.name);
+                if (seg) {
+                    proc.startTime = seg.startTime;
+                }
+            });
+        }
+
+        else if (selectedAlgorithm === "RR") {
+            const quantum = parseInt(prompt("Enter Time Quantum:", "7"));
+
+            let n = processes.length;
+            let queue = [];
+            let remainingTimes = processes.map(p => p.burstTime);
+            let isInQueue = new Array(n).fill(false);
+
+            // Assign an index to each process for tracking
+            processes.forEach((p, i) => {
+                p.index = i;
+            });
+
+            // Start simulation from the first arrival time
+            let currentTime = Math.min(...processes.map(p => p.arrivalTime));
+
+            // Initially add all processes that have already arrived
+            for (let i = 0; i < n; i++) {
+                if (processes[i].arrivalTime <= currentTime) {
+                    queue.push(processes[i]);
+                    isInQueue[i] = true;
+                }
+            }
+
+            while (queue.length > 0) {
+                let proc = queue.shift();
+                let idx = proc.index;
+
+                // First time execution
+                if (proc.startTime === undefined) {
+                    proc.startTime = currentTime;
+                }
+
+                let execTime = Math.min(quantum, remainingTimes[idx]);
+
+                // Add to timeline
+                timeline.push({
+                    name: proc.name,
+                    startTime: currentTime,
+                    endTime: currentTime + execTime
+                });
+
+                currentTime += execTime;
+                remainingTimes[idx] -= execTime;
+
+                // Add newly arrived processes to queue
+                for (let i = 0; i < n; i++) {
+                    if (!isInQueue[i] && processes[i].arrivalTime <= currentTime && remainingTimes[i] > 0) {
+                        queue.push(processes[i]);
+                        isInQueue[i] = true;
+                    }
+                }
+
+                // Requeue current process if it's not done
+                if (remainingTimes[idx] > 0) {
+                    queue.push(proc);
+                } else {
+                    // Process completed
+                    proc.completionTime = currentTime;
+                    proc.turnaroundTime = proc.completionTime - proc.arrivalTime;
+                    proc.waitingTime = proc.turnaroundTime - proc.burstTime;
+                }
+
+                // If queue is empty but there are still processes left, advance time
+                if (queue.length === 0) {
+                    for (let i = 0; i < n; i++) {
+                        if (remainingTimes[i] > 0 && processes[i].arrivalTime > currentTime) {
+                            currentTime = processes[i].arrivalTime;
+                            queue.push(processes[i]);
+                            isInQueue[i] = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Ensure each process has its earliest startTime from the timeline
+            processes.forEach(proc => {
+                const seg = timeline.find(t => t.name === proc.name);
+                if (seg) {
+                    proc.startTime = seg.startTime;
+                }
+            });
+        }
+
+
+
+        // ---------- 4. Average Calculations ----------
+        const totalWaitingTime = processes.reduce((sum, p) => sum + p.waitingTime, 0);
+        const totalTurnaroundTime = processes.reduce((sum, p) => sum + p.turnaroundTime, 0);
+
+        const averageWaitingTime = (totalWaitingTime / processes.length).toFixed(2);
+        const averageTurnaroundTime = (totalTurnaroundTime / processes.length).toFixed(2);
+
+     // ---------- 5. Output Result HTML ----------
+let resultHTML = ``;
+
+// ---------- Gantt Chart Title ----------
+resultHTML += `<h2 style="text-align: left;">Output</h2>`;
+resultHTML += `<h3 style="text-align: center; color: #424242;">Order of processing</h3>`;
+
+// ---------- Gantt Chart ----------
+resultHTML += `<div style="display: flex; justify-content: center; align-items: center; margin-top: 6px; margin-bottom: 3px; flex-wrap: wrap;">`;
+timeline.forEach(segment => {
+    resultHTML += `
+        <div style="
+            background-color: #EDF4FF;
+            border: 1px solid #009BFF;
+            padding: 10px;
+            width: 60px;
+            text-align: center;
+            margin: 0px;
+            color: #424242;
+            font-size: 0.9rem;
+        ">
+            ${segment.name}
+        </div>
+    `;
+});
+resultHTML += `</div>`;
+
+// ---------- Time Markers ----------
+resultHTML += `<div style="display: flex; justify-content: center; margin-bottom: 25px;">`;
+timeline.forEach(segment => {
+    resultHTML += `
+        <div style="width: 60px; text-align: left;">
+            <small>${segment.startTime}</small>
+        </div>
+    `;
+});
+if (timeline.length > 0) {
+    resultHTML += `
+        <div style="text-align: left;">
+            <small>${timeline[timeline.length - 1].endTime}</small>
+        </div>
+    `;
+}
+resultHTML += `</div>`;
+
+// ---------- Process Table ----------
+resultHTML += `<div class="table-wrapper"><table>`;
+resultHTML += `
+    <tr>
+        <th>Job</th>
+        <th>Arrival Time</th>
+        <th>Burst Time</th>
+        ${["PP", "NPP"].includes(selectedAlgorithm) ? "<th>Priority</th>" : ""}
+        <th>Completion Time</th>
+        <th>Turnaround Time</th>
+        <th>Waiting Time</th>
+    </tr>
+`;
+
+processes.forEach(p => {
+    resultHTML += `
+        <tr>
+            <td>${p.name}</td>
+            <td>${p.arrivalTime}</td>
+            <td>${p.burstTime}</td>
+            ${["PP", "NPP"].includes(selectedAlgorithm) ? `<td>${p.priority}</td>` : ""}
+            <td>${p.completionTime}</td>
+            <td>${p.turnaroundTime}</td>
+            <td>${p.waitingTime}</td>
+        </tr>
+    `;
+});
+
+// ---------- Average Row ----------
+resultHTML += `
+    <tr>
+        <td colspan="${["PP", "NPP"].includes(selectedAlgorithm) ? 5 : 4}" style="padding: 10px; text-align: right;"><strong>Average</strong></td>
+        <td><strong>${totalTurnaroundTime} / ${processes.length} = ${averageTurnaroundTime}</strong></td>
+        <td><strong>${totalWaitingTime} / ${processes.length} = ${averageWaitingTime}</strong></td>
+    </tr>
+`;
+
+// ---------- CPU Utilization ----------
+const definedStartTimes = processes.map(p => p.startTime).filter(st => st !== undefined);
+const definedCompletionTimes = processes.map(p => p.completionTime).filter(ct => ct !== undefined);
+
+if (definedStartTimes.length > 0 && definedCompletionTimes.length > 0) {
+    const firstStartTime = Math.min(...definedStartTimes);
+    const lastCompletionTime = Math.max(...definedCompletionTimes);
+    const totalBurstTime = processes.reduce((sum, p) => sum + p.burstTime, 0);
+    const totalTimeElapsed = lastCompletionTime - firstStartTime;
+    const cpuUtilization = totalTimeElapsed > 0
+        ? ((totalBurstTime / totalTimeElapsed) * 100).toFixed(2)
+        : "100.00";
+
+    resultHTML += `
+        <tr>
+            <td colspan="7"><strong>CPU Utilization</strong>: (${totalBurstTime} / ${totalTimeElapsed}) × 100 = <strong>${cpuUtilization}%</strong></td>
+        </tr>
+    `;
+} else {
+    resultHTML += `
+        <tr>
+            <td colspan="7"><strong>CPU Utilization</strong>: N/A</td>
+        </tr>
+    `;
+}
+
+resultHTML += `</table></div>`;
+
+// ---------- Inject into Outcontainer ----------
+document.getElementById("Outcontainer").innerHTML = resultHTML;
+
+
+    });
+</script>
+
+<style>
+    /* === Reset and Base Styles === */
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    html {
+        font-family: "Helvetica", sans-serif;
+        font-size: 16px;
+    }
+
+    body {
+        background-color: #f5f5f5;
+        padding: 20px;
+    }
+
+    /* === Layout === */
+    .Maincontainer {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 25px;
+    }
+
+    .Incontainer,
+    .Outcontainer {
+        padding: 30px;
+        border: 1px solid #ddd;
+        border-radius: 15px;
+        background-color: #ffffff;
+        box-shadow: 0 2px 8px rgba(148, 148, 148, 0.2);
+        width: 100%;
+    }
+
+    .Incontainer form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    /* === Form Elements === */
+    select,
+    input {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background-color: #ffffff;
+        color: #333;
+        outline: none;
+        transition: background-color 0.3s, border-color 0.3s;
+    }
+
+    select:hover,
+    input:hover {
+        background-color: #f9f9f9;
+        border-color: #a7a7a7;
+    }
+
+    select:focus,
+    input:focus {
+        border-color: #2684FF;
+        box-shadow: 0 0 6px rgba(0, 123, 255, 0.3);
+    }
+
+    /* === Buttons === */
+    button {
+        width: 100%;
+        max-width: 150px;
+        padding: 10px 0;
+        font-size: 16px;
+        color: #fff;
+        background-color: #2684FF;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        align-self: flex-start;
+    }
+
+    button:hover {
+        background-color: #005BFF;
+    }
+
+    /* === Table Wrapper === */
+    .table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        min-width: 700px;
+        border-collapse: collapse;
+        text-align: center;
+    }
+
+    table th,
+    table td {
+        padding: 10px 12px;
+        border: 1px solid #ccc;
+    }
+
+    table th {
+        background-color: #f7f7f7;
+    }
+
+    /* === Media Queries === */
+
+    /* Mobile (≤ 480px) */
+    @media only screen and (max-width: 480px) {
+        html {
+            font-size: 12px;
+        }
+
+        .Maincontainer {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .Incontainer,
+        .Outcontainer {
+            width: 100%;
+            max-width: 100%;
+            padding: 20px;
+    font-size: 12px;
+        }
+
+        table {
+    font-size: 12px;
+    min-width: 600px;
+  }
+
+  .table-wrapper {
+    margin-bottom: 20px;
+  }
+
+        select,
+        input {
+            font-size: 10px;
+            padding: 8px 10px;
+        }
+
+        button {
+            font-size: 12px;
+            width: 80px;
+        }
+    }
+
+    /* Tablet (481px–900px) */
+    @media only screen and (min-width: 481px) and (max-width: 1098px) {
+        html {
+            font-size: 14px;
+        }
+
+        .Maincontainer {
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .Incontainer,
+        .Outcontainer {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        select,
+        input {
+            font-size: 14px;
+            margin-top: 6px;
+            margin-bottom: 8px;
+        }
+
+        button {
+            font-size: 15px;
+        }
+    }
+
+    /* PC/Laptop (≥ 901px) */
+    @media only screen and (min-width: 1098px) {
+        html {
+            font-size: 16px;
+        }
+
+        .Maincontainer {
+            flex-direction: row; /* ✅ Side-by-side only on desktop */
+            align-items: flex-start;
+        }
+
+        .Incontainer {
+            flex: 1 1 350px;
+            max-width: 400px;
+        }
+
+        .Outcontainer {
+            flex: 2 1 600px;
+            max-width: 900px;
+        }
+    }
+</style>
+
+
+</html>
