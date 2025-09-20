@@ -3,8 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="Schedule Computer" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta name="Process Schedule Solver" content="width=device-width, initial-scale=1.0">
+    <title>Process Schedule Solver</title>
 </head>
 
 <body>
@@ -37,10 +37,10 @@
         </div>
 
         <div class="Outcontainer" id="Outcontainer">
-  <h2 style="text-align: left;">Output</h2>
-  <p style="color: #666; padding-top: 10px;">Gantt chart and table will be shown here</p>
-</div>
-<a href="https://github.com/Kaze-06/Process-Scheduling-Solver.git">fdsfdsfs</a>
+            <h2 style="text-align: left;">Output</h2>
+            <p style="color: #666; padding-top: 10px;">Gantt chart and table will be shown here</p>
+        </div>
+        <a href="https://github.com/Kaze-06/Process-Scheduling-Solver.git">fdsfdsfs</a>
     </div>
 </body>
 
@@ -421,17 +421,17 @@
         const averageWaitingTime = (totalWaitingTime / processes.length).toFixed(2);
         const averageTurnaroundTime = (totalTurnaroundTime / processes.length).toFixed(2);
 
-     // ---------- 5. Output Result HTML ----------
-let resultHTML = ``;
+        // ---------- 5. Output Result HTML ----------
+        let resultHTML = ``;
 
-// ---------- Gantt Chart Title ----------
-resultHTML += `<h2 style="text-align: left;">Output</h2>`;
-resultHTML += `<h3 style="text-align: center; color: #424242;">Order of processing</h3>`;
+        // ---------- Gantt Chart Title ----------
+        resultHTML += `<h2 style="text-align: left;">Output</h2>`;
+        resultHTML += `<h3 style="text-align: center; color: #424242;">Order of processing</h3>`;
 
-// ---------- Gantt Chart ----------
-resultHTML += `<div style="display: flex; justify-content: center; align-items: center; margin-top: 6px; margin-bottom: 3px; flex-wrap: wrap;">`;
-timeline.forEach(segment => {
-    resultHTML += `
+        // ---------- Gantt Chart ----------
+        resultHTML += `<div style="display: flex; justify-content: center; align-items: center; margin-top: 6px; margin-bottom: 3px; flex-wrap: wrap;">`;
+        timeline.forEach(segment => {
+            resultHTML += `
         <div style="
             background-color: #EDF4FF;
             border: 1px solid #009BFF;
@@ -445,30 +445,30 @@ timeline.forEach(segment => {
             ${segment.name}
         </div>
     `;
-});
-resultHTML += `</div>`;
+        });
+        resultHTML += `</div>`;
 
-// ---------- Time Markers ----------
-resultHTML += `<div style="display: flex; justify-content: center; margin-bottom: 25px;">`;
-timeline.forEach(segment => {
-    resultHTML += `
+        // ---------- Time Markers ----------
+        resultHTML += `<div style="display: flex; justify-content: center; margin-bottom: 25px;">`;
+        timeline.forEach(segment => {
+            resultHTML += `
         <div style="width: 60px; text-align: left;">
             <small>${segment.startTime}</small>
         </div>
     `;
-});
-if (timeline.length > 0) {
-    resultHTML += `
+        });
+        if (timeline.length > 0) {
+            resultHTML += `
         <div style="text-align: left;">
             <small>${timeline[timeline.length - 1].endTime}</small>
         </div>
     `;
-}
-resultHTML += `</div>`;
+        }
+        resultHTML += `</div>`;
 
-// ---------- Process Table ----------
-resultHTML += `<div class="table-wrapper"><table>`;
-resultHTML += `
+        // ---------- Process Table ----------
+        resultHTML += `<div class="table-wrapper"><table>`;
+        resultHTML += `
     <tr>
         <th>Job</th>
         <th>Arrival Time</th>
@@ -480,8 +480,8 @@ resultHTML += `
     </tr>
 `;
 
-processes.forEach(p => {
-    resultHTML += `
+        processes.forEach(p => {
+            resultHTML += `
         <tr>
             <td>${p.name}</td>
             <td>${p.arrivalTime}</td>
@@ -492,10 +492,10 @@ processes.forEach(p => {
             <td>${p.waitingTime}</td>
         </tr>
     `;
-});
+        });
 
-// ---------- Average Row ----------
-resultHTML += `
+        // ---------- Average Row ----------
+        resultHTML += `
     <tr>
         <td colspan="${["PP", "NPP"].includes(selectedAlgorithm) ? 5 : 4}" style="padding: 10px; text-align: right;"><strong>Average</strong></td>
         <td><strong>${totalTurnaroundTime} / ${processes.length} = ${averageTurnaroundTime}</strong></td>
@@ -503,36 +503,36 @@ resultHTML += `
     </tr>
 `;
 
-// ---------- CPU Utilization ----------
-const definedStartTimes = processes.map(p => p.startTime).filter(st => st !== undefined);
-const definedCompletionTimes = processes.map(p => p.completionTime).filter(ct => ct !== undefined);
+        // ---------- CPU Utilization ----------
+        const definedStartTimes = processes.map(p => p.startTime).filter(st => st !== undefined);
+        const definedCompletionTimes = processes.map(p => p.completionTime).filter(ct => ct !== undefined);
 
-if (definedStartTimes.length > 0 && definedCompletionTimes.length > 0) {
-    const firstStartTime = Math.min(...definedStartTimes);
-    const lastCompletionTime = Math.max(...definedCompletionTimes);
-    const totalBurstTime = processes.reduce((sum, p) => sum + p.burstTime, 0);
-    const totalTimeElapsed = lastCompletionTime - firstStartTime;
-    const cpuUtilization = totalTimeElapsed > 0
-        ? ((totalBurstTime / totalTimeElapsed) * 100).toFixed(2)
-        : "100.00";
+        if (definedStartTimes.length > 0 && definedCompletionTimes.length > 0) {
+            const firstStartTime = Math.min(...definedStartTimes);
+            const lastCompletionTime = Math.max(...definedCompletionTimes);
+            const totalBurstTime = processes.reduce((sum, p) => sum + p.burstTime, 0);
+            const totalTimeElapsed = lastCompletionTime - firstStartTime;
+            const cpuUtilization = totalTimeElapsed > 0
+                ? ((totalBurstTime / totalTimeElapsed) * 100).toFixed(2)
+                : "100.00";
 
-    resultHTML += `
+            resultHTML += `
         <tr>
             <td colspan="7"><strong>CPU Utilization</strong>: (${totalBurstTime} / ${totalTimeElapsed}) × 100 = <strong>${cpuUtilization}%</strong></td>
         </tr>
     `;
-} else {
-    resultHTML += `
+        } else {
+            resultHTML += `
         <tr>
             <td colspan="7"><strong>CPU Utilization</strong>: N/A</td>
         </tr>
     `;
-}
+        }
 
-resultHTML += `</table></div>`;
+        resultHTML += `</table></div>`;
 
-// ---------- Inject into Outcontainer ----------
-document.getElementById("Outcontainer").innerHTML = resultHTML;
+        // ---------- Inject into Outcontainer ----------
+        document.getElementById("Outcontainer").innerHTML = resultHTML;
 
 
     });
@@ -667,17 +667,17 @@ document.getElementById("Outcontainer").innerHTML = resultHTML;
             width: 100%;
             max-width: 100%;
             padding: 20px;
-    font-size: 12px;
+            font-size: 12px;
         }
 
         table {
-    font-size: 12px;
-    min-width: 600px;
-  }
+            font-size: 12px;
+            min-width: 600px;
+        }
 
-  .table-wrapper {
-    margin-bottom: 20px;
-  }
+        .table-wrapper {
+            margin-bottom: 20px;
+        }
 
         select,
         input {
@@ -727,7 +727,8 @@ document.getElementById("Outcontainer").innerHTML = resultHTML;
         }
 
         .Maincontainer {
-            flex-direction: row; /* ✅ Side-by-side only on desktop */
+            flex-direction: row;
+            /* ✅ Side-by-side only on desktop */
             align-items: flex-start;
         }
 
