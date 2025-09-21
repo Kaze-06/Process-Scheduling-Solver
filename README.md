@@ -1,4 +1,4 @@
-This system may help you learn and to solve the Process Scheduling.
+This system provides a solution that may help you think and learn to solve the Process Scheduling.
 Including:
  - First Come First Serve
  - Shortest Job First(non-preemtive)
@@ -8,3 +8,5 @@ Including:
  - Priority(non-preemtive)
 
 Visit the page here: http://127.0.0.1:5500/ProcSchedSolv.html
+
+
