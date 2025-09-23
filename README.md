@@ -1,4 +1,5 @@
 PROCESS SCHEDULING SOLVER
+
 This system provides TAT(turnaround time) and WAT(waiting time) and CPU Utilization solution that may help you learn to solve based on various scheduling algorithms.
 
 Visit here: http://127.0.0.1:5500/ProcSchedSolv.html
